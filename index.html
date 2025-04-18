@@ -2,59 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Infinite Conway's Game of Life</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Infinite Game of Life</title>
   <style>
-    body {
+    html, body {
       margin: 0;
-      background: #111;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-    }
-
-    canvas {
+      padding: 0;
       background: #000;
-      display: block;
+      overflow: hidden;
+      height: 100%;
+      touch-action: manipulation;
     }
-
-    button {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      padding: 10px;
-      font-size: 16px;
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
     }
   </style>
 </head>
 <body>
-  <button onclick="toggleRunning()">Start / Pause</button>
   <canvas id="gameCanvas"></canvas>
 
   <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Handle resizing
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
     const cellSize = 10;
     let running = false;
     const liveCells = new Set();
 
-    // Seed: Glider in center
-    const centerX = 0;
-    const centerY = 0;
+    // Initial center pattern (glider)
     const seed = [
       [0, 0], [1, 0], [2, 0],
       [2, -1],
       [1, -2],
     ];
     seed.forEach(([x, y]) => {
-      liveCells.add(`${x + centerX},${y + centerY}`);
+      liveCells.add(`${x},${y}`);
     });
 
+    // Infinite logic using Set of coordinate strings
     function getNeighbors(x, y) {
       return [
         [x-1, y-1], [x, y-1], [x+1, y-1],
@@ -64,68 +59,65 @@
     }
 
     function step() {
-      const newLiveCells = new Set();
+      const newLive = new Set();
       const neighborCounts = new Map();
 
       for (const cell of liveCells) {
         const [x, y] = cell.split(',').map(Number);
-        getNeighbors(x, y).forEach(([nx, ny]) => {
+        for (const [nx, ny] of getNeighbors(x, y)) {
           const key = `${nx},${ny}`;
           neighborCounts.set(key, (neighborCounts.get(key) || 0) + 1);
-        });
+        }
       }
 
       for (const [cell, count] of neighborCounts.entries()) {
-        if (count === 3 || (count === 2 && liveCells.has(cell))) {
-          newLiveCells.add(cell);
+        const alive = liveCells.has(cell);
+        if (count === 3 || (alive && count === 2)) {
+          newLive.add(cell);
         }
       }
 
       liveCells.clear();
-      newLiveCells.forEach(cell => liveCells.add(cell));
+      newLive.forEach(c => liveCells.add(c));
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const cols = Math.ceil(canvas.width / cellSize);
+      const rows = Math.ceil(canvas.height / cellSize);
 
       const offsetX = Math.floor(canvas.width / 2);
       const offsetY = Math.floor(canvas.height / 2);
 
       for (const cell of liveCells) {
         const [x, y] = cell.split(',').map(Number);
-        const drawX = offsetX + x * cellSize;
-        const drawY = offsetY + y * cellSize;
+        const px = offsetX + x * cellSize;
+        const py = offsetY + y * cellSize;
 
-        // Only draw if on screen
-        if (
-          drawX >= 0 && drawX < canvas.width &&
-          drawY >= 0 && drawY < canvas.height
-        ) {
-          ctx.fillStyle = "#0f0";
-          ctx.fillRect(drawX, drawY, cellSize, cellSize);
+        if (px >= 0 && px < canvas.width && py >= 0 && py < canvas.height) {
+          ctx.fillStyle = '#0f0';
+          ctx.fillRect(px, py, cellSize, cellSize);
         }
       }
-    }
-
-    function toggleRunning() {
-      running = !running;
     }
 
     function loop() {
       if (running) {
         step();
-        draw();
-      } else {
-        draw();
       }
+      draw();
       requestAnimationFrame(loop);
     }
 
-    window.addEventListener('resize', () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      draw();
+    // Toggle running on touch/click
+    canvas.addEventListener('click', () => {
+      running = !running;
     });
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      running = !running;
+    }, { passive: false });
 
     draw();
     loop();
