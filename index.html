@@ -27,7 +27,6 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Handle resizing
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -39,17 +38,19 @@
     let running = false;
     const liveCells = new Set();
 
-    // Initial center pattern (glider)
-    const seed = [
-      [0, 0], [1, 0], [2, 0],
-      [2, -1],
-      [1, -2],
-    ];
-    seed.forEach(([x, y]) => {
-      liveCells.add(`${x},${y}`);
-    });
+    // === RANDOM START ===
+    function randomizeCells(size = 50, density = 0.2) {
+      for (let y = -size; y < size; y++) {
+        for (let x = -size; x < size; x++) {
+          if (Math.random() < density) {
+            liveCells.add(`${x},${y}`);
+          }
+        }
+      }
+    }
 
-    // Infinite logic using Set of coordinate strings
+    randomizeCells(50, 0.2); // 50x50 region, 20% filled
+
     function getNeighbors(x, y) {
       return [
         [x-1, y-1], [x, y-1], [x+1, y-1],
@@ -84,9 +85,6 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const cols = Math.ceil(canvas.width / cellSize);
-      const rows = Math.ceil(canvas.height / cellSize);
-
       const offsetX = Math.floor(canvas.width / 2);
       const offsetY = Math.floor(canvas.height / 2);
 
@@ -110,10 +108,10 @@
       requestAnimationFrame(loop);
     }
 
-    // Toggle running on touch/click
     canvas.addEventListener('click', () => {
       running = !running;
     });
+
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       running = !running;
